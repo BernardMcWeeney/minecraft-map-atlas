@@ -361,3 +361,38 @@ summary:focus-visible {
   border-color: #a4c979;
   color: #fff;
 }
+
+#atlas-annotation-control {
+  font-size: 11px !important;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  :root {
+    --atlas-header: 138px;
+  }
+  #atlas-header {
+    grid-template-rows: 44px 30px 38px;
+  }
+  .atlas-brand {
+    grid-column: 1/-1;
+    padding-right: 44px;
+  }
+  #atlas-header .atlas-actions {
+    grid-column: 1/-1;
+    grid-row: 3;
+    width: 100%;
+  }
+  #atlas-edit-toggle {
+    position: absolute;
+    right: 10px;
+    top: 8px;
+  }
+  #realm-map-label-control,
+  #atlas-annotation-control {
+    flex: 1;
+    max-width: none;
+    height: 32px;
+    padding: 5px !important;
+    font-size: 11px !important;
+  }
+}

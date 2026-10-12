@@ -18,6 +18,26 @@ const originalCount = JSON.parse(
     await page
       .getByRole("button", { name: "Enable editing", exact: true })
       .waitFor();
+    const annotationsVisible = () =>
+      page.evaluate(() =>
+        unmined.olMap.getLayers().getArray().at(-1).getVisible(),
+      );
+    if (await annotationsVisible())
+      throw Error("Annotations visible in default browse mode");
+    await page
+      .getByRole("button", { name: "Show annotations", exact: true })
+      .click();
+    if (!(await annotationsVisible())) throw Error("Show annotations failed");
+    await page
+      .getByRole("button", { name: "Show all labels", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Hide all labels", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Hide annotations", exact: true })
+      .click();
+    if (await annotationsVisible()) throw Error("Hide annotations failed");
     await page.mouse.move(700, 400);
     const readout = await page.locator("#atlas-coordinates").textContent();
     if (!/^X -?\d+ · Z -?\d+$/.test(readout))
@@ -94,6 +114,8 @@ const originalCount = JSON.parse(
     );
     if (await page.locator("#realm-map-toolbar").count())
       throw Error("Toolbar remains after finish");
+    if (await annotationsVisible())
+      throw Error("Browse overlay visibility was not restored");
     await page.reload({ waitUntil: "networkidle" });
     await page
       .getByRole("button", { name: "Enable editing", exact: true })
@@ -121,7 +143,7 @@ const originalCount = JSON.parse(
       throw Error("Mobile toolbar overflow");
     if (errors.length) throw Error(errors.join("; "));
     console.log(
-      "Real Chromium/uNmINeD smoke passed: browse, pencil, boundary drawing, full annotation export, finish, draft reload mobile controls, visible coordinates, zoom/pan bounds and grass-block favicon.",
+      "Real Chromium/uNmINeD smoke passed: browse, pencil, boundary drawing, full annotation export, finish, draft reload mobile controls, overlay/label toggles, visible coordinates, zoom/pan bounds and grass-block favicon.",
     );
   } finally {
     await browser.close();

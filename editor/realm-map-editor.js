@@ -28,10 +28,13 @@ class RealmMapEditor {
     this.activeTool = "view";
     this.interaction = null;
     this.selectedFeature = null;
-    this.showAllLabels = true;
+    this.showAllLabels = false;
+    this.browseAnnotationsVisible = false;
     try {
       this.showAllLabels =
-        window.localStorage.getItem("realm-map-show-labels-v2") !== "false";
+        window.localStorage.getItem("realm-map-show-labels-v3") === "true";
+      this.browseAnnotationsVisible =
+        window.localStorage.getItem("realm-map-show-annotations-v3") === "true";
     } catch (_) {}
 
     this.source = new ol.source.Vector({ wrapX: false });
@@ -39,6 +42,8 @@ class RealmMapEditor {
       source: this.source,
       style: (feature) => this.styleFor(feature),
     });
+    this.showAnnotations = this.editMode || this.browseAnnotationsVisible;
+    this.layer.setVisible(this.showAnnotations);
     this.map.addLayer(this.layer);
     for (const evt of ["addfeature", "removefeature", "changefeature"]) {
       this.source.on(evt, () => this.saveDraft());
@@ -297,6 +302,14 @@ class RealmMapEditor {
           .fit(this.mapBounds, { padding: [24, 24, 24, 24], duration: 250 });
     });
     actions.appendChild(home);
+    this.annotationButton = this.element("button");
+    this.annotationButton.type = "button";
+    this.annotationButton.id = "atlas-annotation-control";
+    this.annotationButton.addEventListener("click", () =>
+      this.setAnnotationsVisible(!this.showAnnotations),
+    );
+    actions.appendChild(this.annotationButton);
+    this.updateAnnotationsButton();
     header.appendChild(actions);
     document.body.appendChild(header);
     this.map.on("pointermove", (e) => {
@@ -330,6 +343,35 @@ class RealmMapEditor {
     }
   }
 
+  updateAnnotationsButton() {
+    if (!this.annotationButton) return;
+    this.annotationButton.textContent = this.showAnnotations
+      ? "Hide annotations"
+      : "Show annotations";
+    this.annotationButton.setAttribute(
+      "aria-pressed",
+      String(this.showAnnotations),
+    );
+    this.annotationButton.title =
+      "Toggle all kingdom boundaries, markers and routes";
+  }
+
+  setAnnotationsVisible(value, persist = true) {
+    this.showAnnotations = Boolean(value);
+    if (!this.showAnnotations) this.setTool("view");
+    this.layer.setVisible(this.showAnnotations);
+    this.updateAnnotationsButton();
+    if (persist) {
+      this.browseAnnotationsVisible = this.showAnnotations;
+      try {
+        localStorage.setItem(
+          "realm-map-show-annotations-v3",
+          String(this.showAnnotations),
+        );
+      } catch (_) {}
+    }
+  }
+
   updateEditButton() {
     this.editButton.textContent = this.editMode ? "✓" : "✎";
     this.editButton.setAttribute("aria-pressed", String(this.editMode));
@@ -356,6 +398,10 @@ class RealmMapEditor {
     this.loading = true;
     this.setTool("view");
     this.editMode = !this.editMode;
+    this.setAnnotationsVisible(
+      this.editMode || this.browseAnnotationsVisible,
+      false,
+    );
     if (this.editMode) this.setupToolbar();
     else {
       this.toolbar?.remove();
@@ -474,7 +520,7 @@ class RealmMapEditor {
     this.showAllLabels = Boolean(value);
     try {
       localStorage.setItem(
-        "realm-map-show-labels-v2",
+        "realm-map-show-labels-v3",
         String(this.showAllLabels),
       );
     } catch (_) {}
@@ -484,6 +530,11 @@ class RealmMapEditor {
   }
 
   setTool(tool) {
+    if (
+      ["marker", "territory", "route", "edit", "delete"].includes(tool) &&
+      !this.showAnnotations
+    )
+      this.setAnnotationsVisible(true, false);
     this.activeTool = tool;
     if (this.interaction) this.map.removeInteraction(this.interaction);
     this.interaction = null;
@@ -812,11 +863,19 @@ class RealmMapEditor {
     });
   }
 
-  setDocument(data) {
+  setDocument(data, preserveDisplay = false) {
     const valid = AtlasData.migrate(data);
     this.setAnnotations(valid.features);
     this.document = valid;
-    this.showAllLabels = valid.settings.labels;
+    if (!preserveDisplay) {
+      this.showAllLabels = valid.settings.labels;
+      try {
+        localStorage.setItem(
+          "realm-map-show-labels-v3",
+          String(this.showAllLabels),
+        );
+      } catch (_) {}
+    }
     this.updateLabelButton();
     this.source.changed();
     this.refreshDirectory();
@@ -903,7 +962,7 @@ class RealmMapEditor {
       }
     }
     try {
-      this.setDocument(data);
+      this.setDocument(data, true);
     } catch (e) {
       this.notice(
         "Annotations were not replaced: " +
@@ -984,6 +1043,7 @@ class RealmMapEditor {
     }
   }
   selectFeature(feature) {
+    this.setAnnotationsVisible(true, false);
     this.map.getView().fit(feature.getGeometry().getExtent(), {
       maxZoom: 6,
       padding: [80, 80, 80, 80],

@@ -373,3 +373,27 @@ test("pencil opens drawing controls from browse and finish retains draft without
   assert.equal(w.document.querySelectorAll("#realm-map-toolbar").length, 1);
   dom.window.close();
 });
+
+test("browse defaults hide overlays and labels without losing annotations or export contents", async () => {
+  const { editor, w, dom } = await setup(false);
+  assert.equal(editor.showAllLabels, false);
+  assert.equal(editor.layer.getVisible(), false);
+  assert.equal(editor.getAnnotations().length, 3);
+  assert.equal(editor.annotationButton.textContent, "Show annotations");
+  editor.annotationButton.click();
+  assert.equal(editor.layer.getVisible(), true);
+  editor.browseLabelButton.click();
+  assert.equal(editor.showAllLabels, true);
+  const before = JSON.stringify(editor.getAnnotations());
+  editor.annotationButton.click();
+  assert.equal(editor.layer.getVisible(), false);
+  assert.equal(JSON.stringify(editor.getAnnotations()), before);
+  assert.equal(editor.snapshot().features.length, 3);
+  editor.editButton.click();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(editor.layer.getVisible(), true);
+  editor.editButton.click();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(editor.layer.getVisible(), false);
+  dom.window.close();
+});
