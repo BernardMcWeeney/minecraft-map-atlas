@@ -57,3 +57,14 @@ npm run check:assets
 Tests cover migration, JSON roundtrip, invalid imports, exact geometry retention, real OpenLayers custom projection transforms, simulated DOM profile editing, drawing-event creation, shape changes, delete confirmation, undo/redo, exports, corrupt draft protection, patching and asset-size enforcement. The DOM tests use actual OpenLayers geometry/source/interaction classes with a mocked map and custom X/Z projection. They do **not** claim rendered map, real mouse/touch interaction or your exact uNmINeD visual integration was tested. Check create/edit/delete, browser refresh, imports/exports, mobile panels and coordinate registration on the actual world before release. Marker clustering is optional and is not implemented.
 
 The original v2 editor is retained at `docs/realm-map-editor-v2.js`. `docs/V2_ORIGINAL_README.md` is historical only; its old hosting advice is superseded by this Workers workflow.
+
+### Rendered-map smoke test
+
+The uploaded map passed a Chromium smoke test for browse mode, pencil toggle, boundary drawing, export retaining all original annotations, finish editing, draft recovery after refresh, and mobile toolbar width. This uses an isolated browser session and does not modify published annotations. To rerun with Wrangler serving port 8787 and system Chromium:
+
+```sh
+npm install --prefix /tmp/atlas-browser playwright
+NODE_PATH=/tmp/atlas-browser/node_modules node tools/browser-smoke.cjs
+```
+
+Set `ATLAS_CHROMIUM_PATH` if Chromium is installed elsewhere. These browser test tools are optional and are not bundled into the public map.
