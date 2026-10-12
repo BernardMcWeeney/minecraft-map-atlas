@@ -1,41 +1,59 @@
-# Minecraft Kingdom Atlas — Codex handoff
+# Minecraft Kingdom Atlas
 
-This is a **Codex-ready project scaffold**, not a fully completed map or an automatic task transfer. It packages the existing tested-by-user map editor v2 and precise requirements to continue development. **The actual map HTML/tiles and annotations are on the user's Windows PC and are not included here.**
+A browser-local annotation editor for a uNmINeD 0.20.11-dev **Web page** export. Hosting uses **Cloudflare Workers with Static Assets**, without a database or editing API. The actual world HTML, tiles and annotated kingdoms are private and are not included in this repository. No sample terrain is substituted.
 
-## Steps before handing to Codex
+## Install and bring in your world
 
-1. **In the existing editor** at `http://localhost:8000/?edit=1`, use **Export JSON** to back up the user's real annotated territory data. Keep a second copy safely on the computer.
-2. Extract this ZIP into a new project folder and optionally create a GitHub repo from it.
-3. In uNmINeD export **Web page** (not the single-image export), then copy the **contents** of that generated website into `public/`. This must include `index.html`, its scripts and its tile folders. Preserve any real `annotations.json` and do not replace it with the blank sample `annotations.example.json` in this starter.
-4. After copying the world map, copy `editor/realm-map-editor.js` to `public/realm-map-editor.js` if not already present. From inside `public/` run `py ..\tools\patch-unmined.py` once to inject the map editor (idempotent).
-5. Place your backed-up annotations file from step 1 at `public/annotations.json`. If starting fresh, copy `public/annotations.example.json` to `public/annotations.json`. Keep the original backup separately.
-6. From the project root, run `npm install`, then `npm run dev`. Cloudflare Wrangler serves the assets locally (the exact localhost port is printed in the terminal).
-7. Once the project loads, open the project in Codex, read `AGENTS.md` and `CODEX_TASK.md`, and implement each priority. If Codex uses a cloud environment, it must have access to a GitHub repository containing the source files; **do not upload the private Minecraft world itself**.
+Use Node.js 22 or newer, npm and Python 3. From the repository root:
 
-## How to publish on Cloudflare Workers
+```sh
+npm ci
+```
 
-- Push the project to GitHub; in Cloudflare dashboard go to **Workers & Pages → Create application → Import a repository** and select the repository for a **Worker**, not a Pages project. Set deploy command `npx wrangler deploy` and use the linked repository's production branch. Workers Builds redeploys on push.
-- Or manually deploy from the project root with `npm run deploy` after `npx wrangler login`.
-- Editing in a public browser only changes **local draft data**. Use **Export JSON**, then in GitHub replace `public/annotations.json` and commit. Workers Builds republishes the static file; ordinary viewers get the new data on reload.
+Before upgrading, export and separately back up the current annotations and browser draft. Keep the same browser origin to retain `realm-map-annotations-v1`; moving hosts or local ports requires exporting/importing your backup.
 
-## Cloudflare Workers free limits
+Copy the **contents** of your uNmINeD Web page export into `public/`, including its `index.html`, scripts and tile folders. Never overwrite `public/annotations.json` with the empty example. Put your backed-up real annotations there; only a genuinely new atlas should start from `annotations.example.json`.
 
-- Cloudflare Workers Free currently supports up to **20,000 static assets** per Worker version and **25 MiB per individual asset**. Before uploading real tiles check both size and count. If the map is too large, work with Codex on a reduced uNmINeD tile export or separate tile serving strategy. Static asset requests are free and do not call the Worker when served directly.
-- Current docs: https://developers.cloudflare.com/workers/static-assets/ and https://developers.cloudflare.com/workers/platform/limits/
+```sh
+npm run prepare:assets
+npm run dev
+```
 
-## Deploy configuration
+Preparation copies the editor and its local data module into `public/` and idempotently patches the generated HTML after the original map initialization. It supports the supplied baseline's `const unmined = new Unmined(...)` pattern. For a differently named or asynchronously initialized map, manually load `atlas-data.js` then `realm-map-editor.js` and call `new RealmMapEditor(yourUnminedInstance)` only after `olMap`, `dataProjection` and `viewProjection` are ready. The patcher refuses unfamiliar HTML; it does not reconstruct a map.
 
-`wrangler.jsonc` uses `assets.directory: ./public`, no server code or database. `npm run dev` runs Wrangler, `npm run deploy` deploys it.
+Use the local address Wrangler prints. Browse is the default; `?edit=1` enables local editing. This parameter is not authentication.
 
-## Important files
+## Edit, back up and publish
 
-- `AGENTS.md` — rules for the coding agent.
-- `CODEX_TASK.md` — requirements, tasks, acceptance tests and security guidance.
-- `editor/realm-map-editor.js` — previous editor v2 source, working in the user's browser.
-- `tools/patch-unmined.py` — injects the editor on an exported uNmINeD map (run from `public/`).
-- `public/annotations.example.json` — blank example only; **the user must add their real export as `public/annotations.json`**.
-- `docs/V2_ORIGINAL_README.md` — history/reference for the existing editor.
+- Click kingdoms, markers or routes for profiles. Edit metadata independently of geometry. Shape mode edits vertices; Escape returns to browse. Delete asks for confirmation. Undo/redo buttons and Ctrl/Cmd-Z, Shift-Z or Ctrl/Cmd-Y restore changes, imports and resets within this session. History holds 100 steps and does not survive reload.
+- Search names, descriptions, owners and categories; filter rulers, use the territory directory and layer legend. Layers and labels do not delete features. Labels declutter below zoom 2; marker icons use local Unicode glyphs, with appearance dependent on installed fonts.
+- Categories include railway stations, railways, roads, boat routes, post offices, town halls, castles, houses, shops, mines, farms, inns/hotels, harbours, Nether portals, military bases, libraries and custom markers. Assign layer, category and related kingdom in the profile; no category automatically creates terrain or a second dimension map.
+- Click the map for Minecraft X/Z, copy `/tp <x> ~ <z>`, or copy a coordinate/zoom link. Feature links use permanent IDs. Profile coordinates are the approximate bounding-box centre.
+- **Export for Publishing** downloads validated `annotations.json`, including geometry, metadata, settings and dates. It is also the portable backup. Import JSON restores a backup after confirmation. Invalid imports are rejected before changing existing shapes. A corrupt stored draft is retained and blocks export until explicitly restored/reset.
+- Replace **`public/annotations.json` in GitHub and commit to `main`** to publish. A visitor's local draft never writes to GitHub or the hosted site. No GitHub token is stored in the browser. Only a repository user with write access can publish.
 
-## Codex starting prompt
+Version 1 and 2 imports migrate to version 3; stable deterministic legacy IDs are assigned once and retained thereafter. Existing kingdom rings, holes and vertex ordering are kept. JSON is limited to 8 MiB, 10,000 features and 200,000 vertices; unsupported versions, duplicate IDs, invalid/open rings and nonfinite coordinates fail explicitly. User strings render as text, never annotation HTML. Existing metadata fields from the baseline are retained; the extended schema is documented in `editor/atlas-data.js`.
 
-> Read AGENTS.md and CODEX_TASK.md. Continue the existing uNmINeD Kingdom Atlas editor, preserving all current annotations and true Minecraft X/Z coordinates. Implement the P0/P1 requirements, test and document. Use Cloudflare Workers with Static Assets and GitHub-linked publishing only: public browser edits are drafts, Export JSON then commit `public/annotations.json` to publish. Do not use Cloudflare Pages or add a backend/database. Explain blockers if the actual map export is not available.
+## Cloudflare Workers Builds
+
+1. Commit the source, lockfile, actual `public/` Web page export and `public/annotations.json` to the GitHub repository. Do not commit the `.mcworld`, credentials or browser-only drafts.
+2. In Cloudflare's **Workers & Pages** area, create/import a **Worker** from the GitHub repository. Select production branch `main`, root directory `/`, build command `npm ci && npm run prepare:assets && npm run check:assets`, and deploy command **`npm run deploy`**. If the dashboard offers additional branches, use the same build/deploy checks. Do not choose a Pages project.
+3. `wrangler.jsonc` serves `./public` as Workers Static Assets, with no Worker API, KV, D1 or R2. Workers Builds redeploys committed updates. The resulting hostname is `minecraft-kingdom-atlas.<your-account-subdomain>.workers.dev`; attach a custom domain through the Worker's domain settings if desired.
+4. Manual deployment is also available: authenticate using `npx wrangler login`, then `npm run deploy`. Authentication belongs to the repository owner/Cloudflare integration, not the public browser editor.
+
+`npm run deploy` first prepares assets and runs preflight. It refuses a missing generated map, missing/invalid real annotations, more than **20,000 files**, or any asset larger than **25 MiB** (Workers Free limits). Reduce export area/zoom levels if needed; no alternate storage is added automatically. Check current limits at https://developers.cloudflare.com/workers/static-assets/ and https://developers.cloudflare.com/workers/platform/limits/ before production deployment.
+
+## Refresh terrain without losing annotations
+
+Back up `annotations.json` and the browser draft first. Replace only generated uNmINeD terrain assets/scripts/HTML, keeping annotations, editor assets and coordinate registration. Run `npm run prepare:assets` again on the new HTML. Set the terrain export date in the editor's directory, export annotations and commit both updates. The terrain date and annotation modification timestamp are separate. Verify known X/Z landmarks against the new export before publishing; a changed uNmINeD projection or origin must be investigated rather than moving kingdom vertices to compensate.
+
+## Validation and limitations
+
+```sh
+npm test
+npm run check:assets
+```
+
+Tests cover migration, JSON roundtrip, invalid imports, exact geometry retention, real OpenLayers custom projection transforms, simulated DOM profile editing, drawing-event creation, shape changes, delete confirmation, undo/redo, exports, corrupt draft protection, patching and asset-size enforcement. The DOM tests use actual OpenLayers geometry/source/interaction classes with a mocked map and custom X/Z projection. They do **not** claim rendered map, real mouse/touch interaction or your exact uNmINeD visual integration was tested. Check create/edit/delete, browser refresh, imports/exports, mobile panels and coordinate registration on the actual world before release. Marker clustering is optional and is not implemented.
+
+The original v2 editor is retained at `docs/realm-map-editor-v2.js`. `docs/V2_ORIGINAL_README.md` is historical only; its old hosting advice is superseded by this Workers workflow.
