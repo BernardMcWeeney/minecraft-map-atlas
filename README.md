@@ -1,6 +1,6 @@
 # Minecraft Kingdom Atlas
 
-A browser-local annotation editor for a uNmINeD 0.20.11-dev **Web page** export. Hosting uses **Cloudflare Workers with Static Assets**, without a database or editing API. The actual world HTML, tiles and annotated kingdoms are private and are not included in this repository. No sample terrain is substituted.
+A browser-local annotation editor for a uNmINeD 0.20.11-dev **Web page** export. Hosting uses **Cloudflare Workers with Static Assets**, without a database or editing API. The repository contains the owner's uploaded Web page export and six existing annotations. Keep independent backups before refreshing terrain or editing annotations.
 
 ## Install and bring in your world
 
@@ -68,3 +68,7 @@ NODE_PATH=/tmp/atlas-browser/node_modules node tools/browser-smoke.cjs
 ```
 
 Set `ATLAS_CHROMIUM_PATH` if Chromium is installed elsewhere. These browser test tools are optional and are not bundled into the public map.
+
+### Minecraft interface
+
+The map uses locally bundled Minecraft-style panels and a grass-block SVG favicon. A fixed header shows live Minecraft X/Z coordinates on desktop and phones; clicking the readout copies `/tp`. The directory stays compact until opened. Editor tools appear only after clicking the pencil, with Export for Publishing at the top. Zoom and pan are constrained to the exported terrain bounds; resizing recalculates the minimum zoom while keeping the original uNmINeD projection and tile resolutions. The overview button recentres the world at the permitted zoom. A different viewport aspect ratio can crop the outer world edge instead of displaying blank margins. The browser smoke test also checks those constraints, coordinates and the favicon.

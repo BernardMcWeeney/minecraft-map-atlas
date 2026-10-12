@@ -48,6 +48,8 @@ class RealmMapEditor {
     if (this.editMode) this.setupToolbar();
     this.map.on("singleclick", (evt) => this.onMapClick(evt));
     this.setupDirectory();
+    this.constrainMapView();
+    this.map.on("change:size", () => this.constrainMapView());
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         this.setTool("view");
@@ -178,6 +180,78 @@ class RealmMapEditor {
       }
     `;
     document.head.appendChild(style);
+    const stylesheet = document.createElement("link");
+    stylesheet.rel = "stylesheet";
+    stylesheet.href = "./atlas-ui.css";
+    document.head.appendChild(stylesheet);
+    if (!document.querySelector('link[rel="icon"]')) {
+      const icon = document.createElement("link");
+      icon.rel = "icon";
+      icon.type = "image/svg+xml";
+      icon.href = "./grass-block.svg";
+      document.head.appendChild(icon);
+    }
+  }
+
+  updateCoordinates(coordinate) {
+    if (!coordinate) return;
+    const world = this.coordToWorld(coordinate);
+    if (!world.every(Number.isFinite)) return;
+    this.lastWorld = world;
+    this.coordinates.textContent = `X ${Math.round(world[0])} · Z ${Math.round(world[1])}`;
+    this.coordinates.setAttribute(
+      "aria-label",
+      `X ${Math.round(world[0])}, Z ${Math.round(world[1])}. Copy teleport command`,
+    );
+  }
+
+  constrainMapView() {
+    if (
+      !ol.View ||
+      !this.map.getLayers ||
+      !this.map.getSize ||
+      !this.map.setView
+    )
+      return;
+    const original = this.map.getView();
+    const terrain = this.map
+      .getLayers()
+      .getArray()
+      .find((layer) => layer.getSource?.().getTileGrid?.());
+    const bounds = terrain?.getSource().getTileGrid().getExtent();
+    const size = this.map.getSize();
+    if (!bounds || !size || size.some((n) => n <= 0)) return;
+    this.mapBounds = bounds;
+    this.baseMinZoom ??= original.getMinZoom();
+    const minimum = Math.max(
+      this.baseMinZoom,
+      Math.ceil(
+        original.getZoomForResolution(
+          Math.min(
+            (bounds[2] - bounds[0]) / size[0],
+            (bounds[3] - bounds[1]) / size[1],
+          ),
+        ),
+      ),
+    );
+    this.map.setView(
+      new ol.View({
+        projection: original.getProjection(),
+        resolutions: original.getResolutions(),
+        extent: bounds,
+        center: original.getCenter(),
+        zoom: Math.max(original.getZoom(), minimum),
+        minZoom: minimum,
+        maxZoom: original.getMaxZoom(),
+        constrainOnlyCenter: false,
+        showFullExtent: false,
+        smoothResolutionConstraint: false,
+        smoothExtentConstraint: false,
+        constrainResolution: true,
+        enableRotation: false,
+      }),
+    );
+    this.map.getView().on("change:resolution", () => this.source.changed());
   }
 
   setupUi() {
@@ -188,17 +262,59 @@ class RealmMapEditor {
     document.body.appendChild(profile);
     this.profile = profile;
 
+    const header = this.element("header");
+    header.id = "atlas-header";
+    const brand = this.element("div", undefined, "atlas-brand");
+    const block = this.element("img");
+    block.src = "./grass-block.svg";
+    block.alt = "";
+    const title = this.element("div");
+    title.append(
+      this.element("strong", "Kingdom Atlas"),
+      this.element("small", "Explore your world"),
+    );
+    brand.append(block, title);
+    header.appendChild(brand);
+    this.coordinates = this.element("button", "X 0 · Z 0");
+    this.coordinates.id = "atlas-coordinates";
+    this.coordinates.title = "Copy Minecraft teleport command";
+    this.coordinates.addEventListener("click", () => {
+      if (this.lastWorld)
+        this.copyText(
+          `/tp ${Math.round(this.lastWorld[0])} ~ ${Math.round(this.lastWorld[1])}`,
+        );
+    });
+    header.appendChild(this.coordinates);
+    const actions = this.element("div", undefined, "atlas-actions");
+    const home = this.element("button", "⌂");
+    home.id = "atlas-home";
+    home.title = "World overview";
+    home.setAttribute("aria-label", "World overview");
+    home.addEventListener("click", () => {
+      if (this.mapBounds)
+        this.map
+          .getView()
+          .fit(this.mapBounds, { padding: [24, 24, 24, 24], duration: 250 });
+    });
+    actions.appendChild(home);
+    header.appendChild(actions);
+    document.body.appendChild(header);
+    this.map.on("pointermove", (e) => {
+      if (!e.dragging) this.updateCoordinates(e.coordinate);
+    });
+    this.map.on("moveend", () =>
+      this.updateCoordinates(this.map.getView().getCenter()),
+    );
+    this.updateCoordinates(this.map.getView().getCenter());
     const editButton = this.element("button", "✎");
     editButton.type = "button";
     editButton.id = "atlas-edit-toggle";
     editButton.setAttribute("aria-label", "Enable editing");
     editButton.title = "Edit map annotations";
-    editButton.style.cssText =
-      "position:fixed;top:12px;right:12px;z-index:10001;background:#273545;color:white;border:1px solid #99a8b2;border-radius:8px;padding:8px 12px;font:20px system-ui;cursor:pointer";
     editButton.addEventListener("click", () => this.toggleEditing());
     this.editButton = editButton;
     this.updateEditButton();
-    document.body.appendChild(editButton);
+    actions.appendChild(editButton);
     {
       const button = document.createElement("button");
       button.type = "button";
@@ -206,7 +322,7 @@ class RealmMapEditor {
       button.addEventListener("click", () =>
         this.setLabels(!this.showAllLabels),
       );
-      document.body.appendChild(button);
+      actions.prepend(button);
       this.labelButton = button;
       this.browseLabelButton = button;
       button.hidden = this.editMode;
@@ -236,6 +352,7 @@ class RealmMapEditor {
       return;
     }
     if (this.editMode && this.saveDraft() === false) return;
+    const directoryWasOpen = this.directory?.open;
     this.loading = true;
     this.setTool("view");
     this.editMode = !this.editMode;
@@ -263,6 +380,7 @@ class RealmMapEditor {
       this.notice(
         "Editing a local draft. Choose Boundary to draw kingdoms, then Export for Publishing to download annotations.json. Your edits are not live until committed in GitHub.",
       );
+    if (!this.loading && this.editMode) this.directory.open = directoryWasOpen;
   }
 
   setupToolbar() {
@@ -270,6 +388,7 @@ class RealmMapEditor {
     pane.id = "realm-map-toolbar";
     pane.innerHTML = `
       <strong>Realm Map Editor</strong>
+      <button type="button" data-action="export" class="atlas-save">Export for Publishing</button>
       <div class="realm-map-row">
         <button type="button" data-tool="view">Browse / Details</button>
         <button type="button" data-tool="marker">Marker</button>
@@ -281,7 +400,7 @@ class RealmMapEditor {
       <label>New item colour <input id="realm-map-color" type="color" value="#f59e0b"></label>
       <div class="realm-map-row">
         <button type="button" data-action="labels">Hide all labels</button>
-        <button type="button" data-action="export">Export for Publishing</button><button type="button" data-action="undo">Undo</button><button type="button" data-action="redo">Redo</button>
+        <button type="button" data-action="undo">Undo</button><button type="button" data-action="redo">Redo</button>
         <button type="button" data-action="import">Import JSON</button>
         <button type="button" data-action="reset">Reset draft</button>
       </div>
@@ -876,9 +995,8 @@ class RealmMapEditor {
   setupDirectory() {
     const panel = this.element("details");
     panel.id = "atlas-directory";
-    panel.style.cssText =
-      "position:fixed;left:8px;bottom:8px;z-index:9999;background:#17212bf2;color:white;padding:10px;border-radius:8px;max-width:280px;max-height:40vh;overflow:auto;font:13px system-ui";
-    panel.appendChild(this.element("summary", "Atlas search, layers & legend"));
+
+    panel.appendChild(this.element("summary", "World directory"));
     this.search = this.element("input");
     this.search.placeholder = "Search profiles";
     this.search.setAttribute("aria-label", "Search profiles");
@@ -904,21 +1022,13 @@ class RealmMapEditor {
       panel.appendChild(label);
       panel.appendChild(this.element("br"));
     }
-    this.results = this.element("div");
+    this.results = this.element("div", undefined, "atlas-results");
     panel.appendChild(this.results);
     this.dates = this.element("p");
     panel.appendChild(this.dates);
     this.message = this.element("p");
     this.message.setAttribute("role", "status");
     panel.appendChild(this.message);
-    this.coordinates = this.element("button", "Click map for X/Z");
-    this.coordinates.addEventListener("click", () => {
-      if (this.lastWorld)
-        this.copyText(
-          `/tp ${Math.round(this.lastWorld[0])} ~ ${Math.round(this.lastWorld[1])}`,
-        );
-    });
-    panel.appendChild(this.coordinates);
     const link = this.element("button", "Copy map view link");
     link.addEventListener("click", () => {
       const world = this.coordToWorld(this.map.getView().getCenter());
@@ -950,8 +1060,7 @@ class RealmMapEditor {
       panel.appendChild(dateLabel);
     }
     this.map.on("singleclick", (e) => {
-      this.lastWorld = this.coordToWorld(e.coordinate);
-      this.coordinates.textContent = `X ${Math.round(this.lastWorld[0])}, Z ${Math.round(this.lastWorld[1])} — copy /tp`;
+      this.updateCoordinates(e.coordinate);
     });
     this.map.getView().on("change:resolution", () => this.source.changed());
     document.body.appendChild(panel);

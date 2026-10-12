@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges">
+<title>Grass block</title>
+<path fill="#1e281c" d="M16 1 31 8v16l-15 8L1 24V8z"/>
+<path fill="#79ad42" d="m16 3 13 6-13 6L3 9z"/>
+<path fill="#99c653" d="m16 3 5 2-5 3-5-2zm-8 5 5 2-4 2-5-2z"/>
+<path fill="#527f30" d="m21 7 6 2-5 3-5-3z"/>
+<path fill="#93603b" d="m3 10 13 6v14L3 23z"/>
+<path fill="#67432e" d="m16 16 13-6v13l-13 7z"/>
+<path fill="#619138" d="m3 10 13 6v5l-4-2v-3l-4-2v3l-5-3z"/>
+<path fill="#426b29" d="m16 16 13-6v4l-4 2v3l-4 2v-3l-5 2z"/>
+<path fill="#b27a4a" d="m5 18 3 1v3l-3-1zm6 3 3 1v3l-3-1z"/>
+<path fill="#865735" d="m19 23 3-1v3l-3 2zm6-5 2-1v3l-2 1z"/>
+</svg>

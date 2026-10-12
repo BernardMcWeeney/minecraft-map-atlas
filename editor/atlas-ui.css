@@ -1,0 +1,363 @@
+:root {
+  --atlas-ink: #f4eed9;
+  --atlas-stone: #292d29;
+  --atlas-edge: #0c100d;
+  --atlas-green: #6d9443;
+  --atlas-gold: #e2c47b;
+  --atlas-header: 70px;
+}
+#map {
+  position: fixed;
+  inset: var(--atlas-header) 0 0;
+  height: calc(100% - var(--atlas-header));
+  background: #17231b;
+}
+#atlas-header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 10002;
+  box-sizing: border-box;
+  height: var(--atlas-header);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  background: linear-gradient(#364a2d 0 5px, #252d22 5px 100%);
+  border-bottom: 4px solid #11190f;
+  color: var(--atlas-ink);
+  font:
+    14px ui-monospace,
+    Consolas,
+    monospace;
+  box-shadow: 0 4px 0 #0005;
+}
+.atlas-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.atlas-brand img {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+}
+.atlas-brand strong {
+  display: block;
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-shadow: 2px 2px #000;
+}
+.atlas-brand small {
+  display: block;
+  margin-top: 4px;
+  color: #b9c9a1;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+#atlas-header .atlas-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+#atlas-header button,
+#atlas-directory button,
+#realm-map-toolbar button,
+#realm-map-profile button {
+  box-sizing: border-box;
+  font:
+    13px ui-monospace,
+    Consolas,
+    monospace;
+  border-radius: 0;
+  color: var(--atlas-ink);
+  background: #41453d;
+  border: 2px solid var(--atlas-edge);
+  box-shadow:
+    inset 2px 2px #707767,
+    inset -2px -2px #242922;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+#atlas-header button:hover,
+#atlas-directory button:hover,
+#realm-map-toolbar button:hover,
+#realm-map-profile button:hover {
+  background: #526448;
+  color: #fff;
+}
+#atlas-header button:active {
+  box-shadow: inset 2px 2px #242922;
+}
+#atlas-edit-toggle {
+  position: static;
+  font-size: 20px !important;
+  min-width: 42px;
+  height: 42px;
+  padding: 4px !important;
+}
+#atlas-edit-toggle[aria-pressed="true"] {
+  background: #587c39;
+}
+#realm-map-label-control {
+  position: static;
+  font-size: 11px;
+  box-shadow:
+    inset 2px 2px #707767,
+    inset -2px -2px #242922;
+}
+#atlas-coordinates {
+  white-space: nowrap;
+  color: var(--atlas-gold) !important;
+  background: #181e17 !important;
+  min-width: 210px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  border: 2px solid #111 !important;
+  box-shadow:
+    inset 2px 2px #080c07,
+    inset -2px -2px #46523b !important;
+}
+#atlas-directory,
+#realm-map-toolbar,
+#realm-map-profile {
+  box-sizing: border-box;
+  background: #252b24f5;
+  color: var(--atlas-ink);
+  border: 3px solid #11170f;
+  border-radius: 0;
+  box-shadow:
+    inset 2px 2px #64705b,
+    4px 4px #0007;
+  font:
+    13px ui-monospace,
+    Consolas,
+    monospace;
+  padding: 14px;
+}
+#atlas-directory {
+  position: fixed;
+  left: 16px;
+  top: calc(var(--atlas-header) + 16px);
+  bottom: auto;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - var(--atlas-header) - 44px);
+  overflow: auto;
+  z-index: 9999;
+}
+#atlas-directory summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--atlas-gold);
+  font-weight: bold;
+  letter-spacing: 0.3px;
+  padding: 4px 0;
+}
+#atlas-directory summary::before {
+  content: "▸ ";
+  color: #a6cf72;
+}
+#atlas-directory[open] summary::before {
+  content: "▾ ";
+}
+#atlas-directory:not([open]) {
+  width: auto;
+  padding: 10px 14px;
+}
+#atlas-directory input:not([type="checkbox"]) {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 10px 0;
+  padding: 9px;
+  background: #161d16;
+  color: var(--atlas-ink);
+  border: 2px solid #626d57;
+  border-radius: 0;
+  font:
+    13px ui-monospace,
+    Consolas,
+    monospace;
+}
+#atlas-directory input::placeholder {
+  color: #b2bba7;
+}
+#atlas-directory label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 4px 0;
+  text-transform: capitalize;
+}
+#atlas-directory input[type="checkbox"] {
+  accent-color: #88b853;
+  min-width: 16px;
+  min-height: 16px;
+}
+#atlas-directory button {
+  margin: 3px 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.atlas-results {
+  display: grid;
+  gap: 3px;
+  margin-top: 12px;
+}
+.atlas-results button {
+  text-align: left;
+  width: 100%;
+}
+#realm-map-toolbar {
+  top: calc(var(--atlas-header) + 16px);
+  right: 16px;
+  width: 320px;
+  max-height: calc(100vh - var(--atlas-header) - 44px);
+}
+#realm-map-toolbar strong {
+  color: var(--atlas-gold);
+  letter-spacing: 1px;
+}
+#realm-map-toolbar button[aria-pressed="true"] {
+  background: #527637;
+  border-color: #a4c979;
+}
+#realm-map-profile {
+  top: calc(var(--atlas-header) + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100vh - var(--atlas-header) - 44px);
+}
+#realm-map-profile input[type="text"],
+#realm-map-profile textarea,
+#realm-map-profile select {
+  box-sizing: border-box;
+  width: 100%;
+  background: #172016;
+  color: var(--atlas-ink);
+  border: 2px solid #78816b;
+  border-radius: 0;
+  padding: 9px;
+  font:
+    13px ui-monospace,
+    Consolas,
+    monospace;
+}
+#realm-map-profile .realm-map-muted,
+#realm-map-toolbar small {
+  color: #c6cfba;
+}
+.ol-mouse-position {
+  display: none;
+}
+.ol-zoom {
+  top: auto;
+  left: auto;
+  right: 16px;
+  bottom: 24px;
+  border-radius: 0;
+  background: #1b2118;
+  padding: 3px;
+}
+.ol-zoom button {
+  background: #424a38;
+  color: white;
+  border-radius: 0 !important;
+  width: 36px;
+  height: 36px;
+  font-size: 22px;
+  border: 1px solid #8a927e;
+}
+.ol-scale-line,
+.ol-scale-bar {
+  bottom: 16px;
+  left: 16px;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #e2c47b;
+  outline-offset: 3px;
+}
+@media (max-width: 720px) {
+  :root {
+    --atlas-header: 108px;
+  }
+  #atlas-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: 48px 32px;
+    gap: 2px 6px;
+    padding: 6px 10px;
+  }
+  .atlas-brand img {
+    width: 32px;
+    height: 32px;
+  }
+  .atlas-brand strong {
+    font-size: 14px;
+  }
+  .atlas-brand small {
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  #atlas-coordinates {
+    grid-column: 1/-1;
+    grid-row: 2;
+    min-width: 0;
+    width: 100%;
+    padding: 5px !important;
+    font-size: 12px !important;
+  }
+  #atlas-header .atlas-actions {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 5px;
+  }
+  #realm-map-label-control {
+    max-width: 80px;
+    padding: 5px !important;
+    font-size: 10px !important;
+  }
+  #atlas-home {
+    display: none;
+  }
+  #atlas-directory {
+    left: 8px;
+    top: calc(var(--atlas-header) + 8px);
+    max-width: calc(100vw - 16px) !important;
+    max-height: 30vh !important;
+  }
+  #realm-map-toolbar {
+    top: auto;
+    bottom: 12px;
+    right: 8px;
+    width: calc(100vw - 16px);
+    max-height: 31vh;
+  }
+  #realm-map-profile {
+    top: calc(var(--atlas-header) + 58px);
+    left: 8px;
+    transform: none;
+    width: calc(100vw - 16px);
+    max-height: 34vh;
+  }
+}
+[hidden] {
+  display: none !important;
+}
+
+#realm-map-toolbar .atlas-save {
+  display: block;
+  width: 100%;
+  margin: 12px 0;
+  background: #567c36;
+  border-color: #a4c979;
+  color: #fff;
+}

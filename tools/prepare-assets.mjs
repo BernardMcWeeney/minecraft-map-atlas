@@ -2,6 +2,8 @@ import { copyFile, readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 await copyFile("editor/atlas-data.js", "public/atlas-data.js");
 await copyFile("editor/realm-map-editor.js", "public/realm-map-editor.js");
+await copyFile("editor/atlas-ui.css", "public/atlas-ui.css");
+await copyFile("editor/assets/grass-block.svg", "public/grass-block.svg");
 try {
   await readFile("public/index.html");
 } catch {
