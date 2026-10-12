@@ -59,15 +59,38 @@ const originalCount = JSON.parse(
       const result = {
         zoom: view.getZoom(),
         minimum: view.getMinZoom(),
-        inside: viewport.every((n, i) =>
-          i < 2 ? n >= bounds[i] - 1e-8 : n <= bounds[i] + 1e-8,
+        expectedMinimum: Math.max(
+          0,
+          Math.ceil(
+            view.getZoomForResolution(
+              Math.min(
+                (bounds[2] - bounds[0]) / map.getSize()[0],
+                (bounds[3] - bounds[1]) / map.getSize()[1],
+              ),
+            ),
+          ) - 1,
         ),
+        inside: [0, 1].every((axis) => {
+          const viewportSpan = viewport[axis + 2] - viewport[axis],
+            worldSpan = bounds[axis + 2] - bounds[axis];
+          // An overview may exceed the world in one axis; lock that axis to its centre.
+          return viewportSpan > worldSpan
+            ? Math.abs(
+                view.getCenter()[axis] - (bounds[axis] + bounds[axis + 2]) / 2,
+              ) < 1e-8
+            : viewport[axis] >= bounds[axis] - 1e-8 &&
+                viewport[axis + 2] <= bounds[axis + 2] + 1e-8;
+        }),
       };
       view.setCenter(center);
       view.setZoom(zoom);
       return result;
     });
-    if (limits.zoom < limits.minimum || !limits.inside)
+    if (
+      limits.zoom < limits.minimum - 1e-8 ||
+      Math.abs(limits.minimum - limits.expectedMinimum) > 1e-8 ||
+      !limits.inside
+    )
       throw Error("Zoom/pan escaped exported bounds");
     const icon = await page.request.get(
       "http://127.0.0.1:8787/grass-block.svg",

@@ -228,17 +228,16 @@ class RealmMapEditor {
     if (!bounds || !size || size.some((n) => n <= 0)) return;
     this.mapBounds = bounds;
     this.baseMinZoom ??= original.getMinZoom();
-    const minimum = Math.max(
-      this.baseMinZoom,
-      Math.ceil(
-        original.getZoomForResolution(
-          Math.min(
-            (bounds[2] - bounds[0]) / size[0],
-            (bounds[3] - bounds[1]) / size[1],
-          ),
+    const viewportFillZoom = Math.ceil(
+      original.getZoomForResolution(
+        Math.min(
+          (bounds[2] - bounds[0]) / size[0],
+          (bounds[3] - bounds[1]) / size[1],
         ),
       ),
     );
+    // Allow one overview step beyond a viewport-filling map, within the tile grid.
+    const minimum = Math.max(this.baseMinZoom, viewportFillZoom - 1);
     this.map.setView(
       new ol.View({
         projection: original.getProjection(),
@@ -249,10 +248,10 @@ class RealmMapEditor {
         minZoom: minimum,
         maxZoom: original.getMaxZoom(),
         constrainOnlyCenter: false,
-        showFullExtent: false,
+        showFullExtent: true,
         smoothResolutionConstraint: false,
         smoothExtentConstraint: false,
-        constrainResolution: true,
+        constrainResolution: false,
         enableRotation: false,
       }),
     );
