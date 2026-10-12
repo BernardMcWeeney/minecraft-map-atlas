@@ -8,13 +8,19 @@ if not html.exists():
     sys.exit(f'Cannot find {html}. Run this in your uNmINeD web export folder.')
 s = html.read_text(encoding='utf-8')
 if 'realm-map-editor.js' in s:
+    if 'atlas-data.js' not in s:
+        import re
+        s, count = re.subn(r'(<script\s+src=[\"\']\./realm-map-editor\.js[\"\'][^>]*>)', '<script src="./atlas-data.js"></script>\n' + r'\1', s, count=1)
+        if not count: sys.exit('Existing editor script is nonstandard; add atlas-data.js immediately before it manually.')
+        html.write_text(s, encoding='utf-8')
     print('Already patched:', html)
     sys.exit(0)
 if 'new Unmined(' not in s or 'unmined' not in s:
     sys.exit('Could not detect the usual uNmINeD initialization. See README.md for manual setup.')
 if '</body>' not in s:
     sys.exit('Cannot find </body> in index.html')
-addition = '''<script src="./realm-map-editor.js"></script>
+addition = '''<script src="./atlas-data.js"></script>
+<script src="./realm-map-editor.js"></script>
 <script>
   // Exported uNmINeD pages commonly create `const unmined = new Unmined(...)`.
   new RealmMapEditor(unmined);
