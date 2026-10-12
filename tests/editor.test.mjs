@@ -340,3 +340,36 @@ test("file import validates before replacement, retains backups and can be undon
   assert.equal(JSON.stringify(editor.snapshot().features), initial);
   dom.window.close();
 });
+
+test("pencil opens drawing controls from browse and finish retains draft without publishing", async () => {
+  const { editor, w, dom } = await setup(false);
+  assert.equal(editor.editMode, false);
+  assert.equal(w.document.querySelector("#realm-map-toolbar"), null);
+  assert.equal(editor.editButton.getAttribute("aria-pressed"), "false");
+  editor.editButton.click();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(editor.editMode, true);
+  assert.equal(new URL(w.location.href).searchParams.get("edit"), "1");
+  assert.ok(editor.toolbar.querySelector("[data-tool=territory]"));
+  editor.toolbar.querySelector("[data-tool=territory]").click();
+  assert.equal(editor.activeTool, "territory");
+  editor.setTool("view");
+  editor.source.getFeatures()[0].set("name", "Local draft kingdom");
+  editor.editButton.click();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(editor.editMode, false);
+  assert.equal(w.document.querySelector("#realm-map-toolbar"), null);
+  assert.equal(editor.source.getFeatures()[0].get("name"), "Ravenshire");
+  assert.equal(
+    JSON.parse(w.localStorage.getItem(editor.storeKey)).features[0].name,
+    "Local draft kingdom",
+  );
+  editor.editButton.click();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(
+    editor.source.getFeatures()[0].get("name"),
+    "Local draft kingdom",
+  );
+  assert.equal(w.document.querySelectorAll("#realm-map-toolbar").length, 1);
+  dom.window.close();
+});

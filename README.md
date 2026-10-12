@@ -21,7 +21,7 @@ npm run dev
 
 Preparation copies the editor and its local data module into `public/` and idempotently patches the generated HTML after the original map initialization. It supports the supplied baseline's `const unmined = new Unmined(...)` pattern. For a differently named or asynchronously initialized map, manually load `atlas-data.js` then `realm-map-editor.js` and call `new RealmMapEditor(yourUnminedInstance)` only after `olMap`, `dataProjection` and `viewProjection` are ready. The patcher refuses unfamiliar HTML; it does not reconstruct a map.
 
-Use the local address Wrangler prints. Browse is the default; `?edit=1` enables local editing. This parameter is not authentication.
+Use the local address Wrangler prints. Browse is the default. Click the **✎ pencil** in the top-right corner to enable local editing and show the drawing toolbar. Choose **Boundary**, click polygon corners and double-click to finish; use **Export for Publishing** to download `annotations.json`. Click **✓** to return to the published map; your local draft is retained for the next editing session. `?edit=1` also opens editing directly. This parameter is not authentication.
 
 ## Edit, back up and publish
 

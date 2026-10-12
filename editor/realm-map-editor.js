@@ -143,7 +143,7 @@ class RealmMapEditor {
         box-sizing:border-box;position:fixed;z-index:10000;font:13px system-ui,Arial,sans-serif;
         background:#17212bf2;color:#fff;box-shadow:0 8px 24px #0007;border-radius:12px
       }
-      #realm-map-toolbar {top:12px;right:12px;padding:12px;width:296px;max-height:46vh;overflow-y:auto}
+      #realm-map-toolbar {top:64px;right:12px;padding:12px;width:296px;max-height:46vh;overflow-y:auto}
       #realm-map-toolbar .realm-map-row {display:flex;flex-wrap:wrap;gap:5px;margin:9px 0}
       #realm-map-toolbar button,#realm-map-profile button,#realm-map-label-control {
         border:1px solid #667485;border-radius:6px;background:#273545;color:white;padding:7px 9px;cursor:pointer
@@ -152,7 +152,7 @@ class RealmMapEditor {
       #realm-map-toolbar input[type=color] {width:36px;height:30px;vertical-align:middle;border:0;cursor:pointer;background:transparent}
       #realm-map-toolbar small {color:#c7d5df;line-height:1.35;display:block}
       #realm-map-toolbar label {cursor:pointer}
-      #realm-map-label-control {top:12px;right:12px;padding:9px 12px}
+      #realm-map-label-control {top:12px;right:64px;padding:9px 12px}
       #realm-map-profile {top:12px;left:60px;width:min(350px,calc(100vw - 75px));max-height:calc(100vh - 24px);overflow-y:auto;padding:16px}
       #realm-map-profile[hidden] {display:none}
       #realm-map-profile .realm-map-profile-heading {display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
@@ -172,7 +172,7 @@ class RealmMapEditor {
       #atlas-directory button {background:#273545;color:white;border:1px solid #99a8b2;border-radius:5px;padding:6px;margin:2px}
       #atlas-directory input:not([type=checkbox]) {box-sizing:border-box;max-width:100%;display:block;margin:5px 0;padding:6px}
       @media (max-width: 720px) {
-        #realm-map-toolbar {top:8px;bottom:auto;right:8px;width:min(296px,calc(100vw - 54px));max-height:28vh}
+        #realm-map-toolbar {top:60px;bottom:auto;right:8px;width:min(296px,calc(100vw - 54px));max-height:28vh}
         #realm-map-profile {top:32vh;left:44px;width:min(340px,calc(100vw - 54px));max-height:34vh}
         #atlas-directory {max-height:25vh !important;max-width:calc(100vw - 36px) !important}
       }
@@ -188,7 +188,18 @@ class RealmMapEditor {
     document.body.appendChild(profile);
     this.profile = profile;
 
-    if (!this.editMode) {
+    const editButton = this.element("button", "✎");
+    editButton.type = "button";
+    editButton.id = "atlas-edit-toggle";
+    editButton.setAttribute("aria-label", "Enable editing");
+    editButton.title = "Edit map annotations";
+    editButton.style.cssText =
+      "position:fixed;top:12px;right:12px;z-index:10001;background:#273545;color:white;border:1px solid #99a8b2;border-radius:8px;padding:8px 12px;font:20px system-ui;cursor:pointer";
+    editButton.addEventListener("click", () => this.toggleEditing());
+    this.editButton = editButton;
+    this.updateEditButton();
+    document.body.appendChild(editButton);
+    {
       const button = document.createElement("button");
       button.type = "button";
       button.id = "realm-map-label-control";
@@ -197,8 +208,61 @@ class RealmMapEditor {
       );
       document.body.appendChild(button);
       this.labelButton = button;
+      this.browseLabelButton = button;
+      button.hidden = this.editMode;
       this.updateLabelButton();
     }
+  }
+
+  updateEditButton() {
+    this.editButton.textContent = this.editMode ? "✓" : "✎";
+    this.editButton.setAttribute("aria-pressed", String(this.editMode));
+    this.editButton.setAttribute(
+      "aria-label",
+      this.editMode
+        ? "Finish editing and browse published map"
+        : "Enable editing",
+    );
+    this.editButton.title = this.editMode
+      ? "Finish editing (draft stays in this browser)"
+      : "Edit map annotations";
+  }
+
+  async toggleEditing() {
+    if (this.loading) {
+      this.notice(
+        "Wait for annotations to load, or resolve the loading error first.",
+      );
+      return;
+    }
+    if (this.editMode && this.saveDraft() === false) return;
+    this.loading = true;
+    this.setTool("view");
+    this.editMode = !this.editMode;
+    if (this.editMode) this.setupToolbar();
+    else {
+      this.toolbar?.remove();
+      this.toolbar = null;
+      this.labelButton = this.browseLabelButton;
+    }
+    this.browseLabelButton.hidden = this.editMode;
+    if (this.worldDateLabel) this.worldDateLabel.hidden = !this.editMode;
+    const url = new URL(location.href);
+    if (this.editMode) url.searchParams.set("edit", "1");
+    else url.searchParams.delete("edit");
+    window.history.replaceState(null, "", url);
+    this.updateEditButton();
+    this.editButton.disabled = true;
+    try {
+      await this.loadAnnotations();
+    } finally {
+      this.editButton.disabled = false;
+    }
+    this.updateLabelButton();
+    if (!this.loading && this.editMode)
+      this.notice(
+        "Editing a local draft. Choose Boundary to draw kingdoms, then Export for Publishing to download annotations.json. Your edits are not live until committed in GitHub.",
+      );
   }
 
   setupToolbar() {
@@ -658,12 +722,14 @@ class RealmMapEditor {
       this.lastSnapshot = text;
       this.refreshDirectory();
       window.localStorage.setItem(this.storeKey, text);
+      return true;
     } catch (e) {
       this.notice(
         "Draft could not be saved: " +
           e.message +
           ". Export a backup before closing.",
       );
+      return false;
     }
   }
 
@@ -866,7 +932,7 @@ class RealmMapEditor {
       this.copyText(url.href);
     });
     panel.appendChild(link);
-    if (this.editMode) {
+    {
       const dateLabel = this.element(
         "label",
         "World export date (terrain only)",
@@ -879,6 +945,8 @@ class RealmMapEditor {
       });
       date.dataset.worldDate = "";
       dateLabel.appendChild(date);
+      dateLabel.hidden = !this.editMode;
+      this.worldDateLabel = dateLabel;
       panel.appendChild(dateLabel);
     }
     this.map.on("singleclick", (e) => {
